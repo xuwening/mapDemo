@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<style type="text/css">
+		body, html,#allmap {width: 100%;height: 100%;overflow: hidden;margin:0;font-family:"微软雅黑";}
+		#l-map{height:100%;width:78%;float:left;border-right:2px solid #bcbcbc;}
+		#r-result{height:100%;width:20%;float:left;}
+	</style>
+    <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=1XjLLEhZhQNUzd93EjU5nOGQ"></script>
+
+	<script type="text/javascript" src="js/GeoUtils.js"></script>
+	<script type="text/javascript" src="js/FileSaver.js"></script>
+	
+	<title>电子围栏</title>
+</head>
+<body>
+	<div id="allmap"></div>
+</body>
+</html>
+
+
+<script type="text/javascript">
+	// 百度地图API功能
+	var map = new BMap.Map("allmap");
+	var point = new BMap.Point(94.615177,41.812791);
+	map.centerAndZoom(point, 7);
+
+	//圆形
+	var circlePT = new BMap.Point(87.615177,43.812791);
+	var circle = new BMap.Circle(circlePT, 130000, {
+		strokeColor: "red",
+		strokeWeight: 3,
+		strokeOpacity:0.5,
+		strokeStyle: 'dashed'
+	})
+
+	map.addOverlay(circle);
+
+	//矩形
+	var pStart = new BMap.Point(86.16179,41.808285);
+	var pEnd = new BMap.Point(90.24599,39.66748);
+	var rectangle = new BMap.Polygon([
+		new BMap.Point(pStart.lng,pStart.lat),
+		new BMap.Point(pEnd.lng,pStart.lat),
+		new BMap.Point(pEnd.lng,pEnd.lat),
+		new BMap.Point(pStart.lng,pEnd.lat)
+	], {
+		strokeColor:"black",    //边线颜色。
+		fillColor:"red",      //填充颜色。当参数为空时，圆形将没有填充效果。
+		strokeWeight: 3,       //边线的宽度，以像素为单位。
+		strokeOpacity: 0.8,	   //边线透明度，取值范围0 - 1。
+		fillOpacity: 0.6,      //填充的透明度，取值范围0 - 1。
+		strokeStyle: 'solid' //边线的样式，solid或dashed。
+	}); 
+
+	map.addOverlay(rectangle)
+
+	map.addEventListener("tilesloaded",function(){
+		
+		//判断是否在电子围栏内
+		var pt = new BMap.Point(87.615177,43.812791);
+		var tips = ''
+		if (BMapLib.GeoUtils.isPointInCircle(pt, circle)) {
+			tips = JSON.stringify(pt) + '在圆形范围内'
+		} else {
+			tips = JSON.stringify(pt) + '不在圆形范围内'
+		}
+		alert(tips)
+
+		if (BMapLib.GeoUtils.isPointInRect(pt, rectangle.getBounds())) {
+			tips = JSON.stringify(pt) + '在矩形范围内'
+		} else {
+			tips = JSON.stringify(pt) + '不在矩形范围内'
+		}
+		alert(tips)
+	});
+
+</script>
+
+

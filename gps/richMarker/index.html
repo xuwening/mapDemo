@@ -1,0 +1,120 @@
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<title>富Marker-还款剩余金额</title>
+	<style type="text/css">
+		body,
+		html {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			font-family: "微软雅黑";
+		}
+
+		#map_canvas {
+			width: 100%;
+			height: 100%;
+		}
+
+		#result {
+			width: 100%
+		}
+
+		.infoBoxContent{font-size:12px;}
+		.infoBoxContent .title{background:url(title.jpg) no-repeat;height:42px;width:272px;}
+		.infoBoxContent .title strong{font-size:14px;line-height:42px;padding:0 10px 0 5px;}
+		.infoBoxContent .title .price{color:hsl(24, 100%, 50%);}
+		.infoBoxContent .list{width:268px;border:solid 1px #4FA5FC;border-top:none;background:#fff;height:160px;}
+		.infoBoxContent .list ul{margin:0;padding:5px;list-style:none;}
+		.infoBoxContent .list ul li {float:left;width:255px;border-bottom:solid 1px #4FA5FC;padding:2px 0;}
+		.infoBoxContent .list ul .last{border:none;}
+		.infoBoxContent .list ul img{width:53px;height:42px;margin-right:5px;}
+		.infoBoxContent .list ul p{padding:0;margin:0;}
+		.infoBoxContent .left{float:left;}
+		.infoBoxContent .rmb{float:right;color:#EB6100;font-size:14px;font-weight:bold;}
+		.infoBoxContent a{color:#0041D9;text-decoration:none;}
+	</style>
+	<script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=1XjLLEhZhQNUzd93EjU5nOGQ"></script>
+
+	<script type="text/javascript" src="js/GeoUtils.js"></script>
+	<script type="text/javascript" src="js/FileSaver.js"></script>
+
+	<script type="text/javascript" src="http://api.map.baidu.com/library/RichMarker/1.2/src/RichMarker_min.js"></script>
+	<script type="text/javascript" src="http://api.map.baidu.com/library/InfoBox/1.2/src/InfoBox_min.js"></script>
+
+</head>
+
+<body>
+	<div id="map_canvas"></div>
+	<div id="result"></div>
+	<script>
+		var marker;
+		var map = new BMap.Map('map_canvas');
+		map.enableScrollWheelZoom();
+		map.centerAndZoom();
+		
+		var html = ["<div class='infoBoxContent'><div class='title'><strong>车辆详细信息</strong><span class='price'>车辆总价: 430000</span></div>",
+		"<div class='list'><text>车牌号： SD45565120</text><br><text>融资额： 30万</text><br><text>已还款： 12.6万</text><br><text>未还款： 27.4万</text><br><text>剩余还款月数： 16个月</text></div>"
+		,"</div>"];
+		var infoBox = new BMapLib.InfoBox(map,html.join(""),{
+			boxStyle:{
+				background:"url('tipbox.gif') no-repeat center top"
+				,width: "270px"
+				,height: "300px"
+			}
+			,closeIconMargin: "1px 1px 0 0"
+			,enableAutoPan: true
+			,align: INFOBOX_AT_TOP
+		});
+
+		$.get('mapdata.js', function (rs) {
+
+					var geoCoords = JSON.parse(rs);
+
+					var arrPois = [];
+
+					for (var i = 0; i < geoCoords.length; i+=20) {
+						var point = new BMap.Point(geoCoords[i].geoCoord[0], geoCoords[i].geoCoord[1]);
+						arrPois.push(point);
+
+						var money = Math.random() * 100 / (Math.random() * 10);
+						
+						var nameTail = i.toFixed(0);
+
+						var html2 = '<div style="position: absolute; margin: 0pt; padding: 0pt; width: 80px; height: 26px; left: -10px; top: -35px; overflow: hidden;">'
+										+     '<img id="rm3_image' + nameTail + '" style="border:none;left:0px; top:0px; position:absolute;" src="images/back1.png">'
+										+ '</div>'
+										+ '<label class=" BMapLabel" unselectable="on" style="position: absolute; -moz-user-select: none; display: inline; cursor: inherit; border: 0px none; padding: 2px 1px 1px; white-space: nowrap; font: 12px arial,simsun; z-index: 80; color: rgb(255, 102, 0); left: 15px; top: -35px;">'
+											+ money.toFixed(1) + '万'
+											+ '</label>'
+						
+						myRichMarker2 = new BMapLib.RichMarker(html2,  point,{
+																		"anchor" : new BMap.Size(-18, -27),
+																		"enableDragging" : true});
+						map.addOverlay(myRichMarker2);
+						myRichMarker2.disableDragging();
+
+						myRichMarker2.imageIdName = "rm3_image"+nameTail;
+						myRichMarker2.addEventListener("onmouseover", function(e) {
+							var marker = e.target;
+							document.getElementById(marker.imageIdName).src = "images/back2.png";
+						});
+						myRichMarker2.addEventListener("onmouseout", function(e) {
+							var marker = e.target;
+							document.getElementById(marker.imageIdName).src = "images/back1.png";
+						});
+
+						myRichMarker2.addEventListener("click", function(e) {
+							infoBox.open(e.target.getPosition());
+						});
+					}
+
+					map.setViewport(arrPois);
+
+		});
+	</script>
+</body>
+
+</html>

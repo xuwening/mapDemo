@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>全国数据大屏展示</title>
+
+    <style type="text/css">
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        #time {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            color: #fff;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <canvas id="canvas"></canvas>
+    <div id="time"></div>
+
+    <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=1XjLLEhZhQNUzd93EjU5nOGQ"></script>
+    <script type="text/javascript" src="https://mapv.baidu.com/build/mapv.js"></script>
+    <script type="text/javascript" src="./mapdata.js"></script>
+
+    <script type="text/javascript" src="js/GeoUtils.js"></script>
+    <script type="text/javascript" src="js/FileSaver.js"></script>
+
+    <script type="text/javascript">
+
+        //生成随机颜色
+        function getRandomColor() {
+            return "hsb(" + Math.random()  + ", 1, 1)";
+        }
+
+        // 百度地图API功能
+        var map = new BMap.Map("map", {
+            enableMapClick: false
+        });    // 创建Map实例
+        // map.centerAndZoom(new BMap.Point(105.403119, 38.028658), 5);  // 初始化地图,设置中心点坐标和地图级别
+
+        map.centerAndZoom(new BMap.Point(105.373647,36.923025), 6);
+        map.enableScrollWheelZoom(true); // 开启鼠标滚轮缩放
+
+        var pointArrs = []
+        
+        function mongolia(name, boundary) {
+            boundary.get(name, function(rs){       //获取行政区域
+                // map.clearOverlays();        //清除地图覆盖物       
+
+                var count = rs.boundaries.length; //行政区域的点有多少个
+                for(var i = 0; i < count; i++){
+                    var ply = new BMap.Polygon(rs.boundaries[i], 
+                            {strokeWeight: 2, //设置多边形边线线粗
+                            strokeOpacity: 1, //设置多边形边线透明度0-1
+                            StrokeStyle: "solid", //设置多边形边线样式为实线或虚线，取值 solid 或 dashed
+                            strokeColor: "transparent", //设置多边形边线颜色
+                            fillColor: "#00ffff", //设置多边形填充颜色
+                            fillOpacity:0.3 //设置多边形填充颜色透明度0-1  注：标红的地放你们可以去掉看一下效果，自己体验一下
+                        }); //建立多边形覆盖物
+                    ply.addEventListener("click", onClick);
+                    map.addOverlay(ply);  //添加覆盖物
+                    // map.setViewport(ply.getPath());    //调整视野
+                }
+            });
+        }
+
+    
+        var bdary = new BMap.Boundary();
+        var names = ['新疆', '河南', '云南'];
+        for (var i=0; i<names.length; i++) {
+            mongolia(names[i], bdary)
+        }
+
+        function onClick(evt) {
+            var ply = evt.target;
+            
+            map.setViewport(ply.getPath());
+        }
+
+        $.get('mapdata.js', function (rs) {
+
+            var mapdata = JSON.parse(rs);
+
+            var data = [];
+            for (var i=0; i<mapdata.length; i++) {
+                var geoCoord = mapdata[i].geoCoord;
+                data.push({
+                    geometry: {
+                        type: 'Point',
+                        coordinates: geoCoord
+                    },
+                    time: Math.random() * 10
+                })
+            }
+
+            var dataSet = new mapv.DataSet(data);
+            var options = {
+                fillStyle: 'rgba(255, 250, 0, 0.8)',
+                size: 0.7,
+                bigData: 'Point',
+                draw: 'simple',
+            }
+            var mapvLayer = new mapv.baiduMapLayer(map, dataSet, options);
+
+            var dataSet = new mapv.DataSet(data);
+            var options = {
+                    fillStyle: 'rgba(255, 250, 250, 0.9)',
+                    size: 0.9,
+                    draw: 'simple',
+                    bigData: 'Point',
+                    animation: {
+                        stepsRange: {
+                            start: 0,
+                            end: 10
+                        },
+                        trails: 10,
+                        duration: 2,
+                    }
+                }
+
+            var mapvLayer = new mapv.baiduMapLayer(map, dataSet, options);
+
+
+            var citys = ["乌鲁木齐", "昆明", "郑州"];
+            var values = [870, 340, 506];
+
+            var randomCount = citys.length;
+            var data = [];
+            
+            // 构造数据
+            for (var i=0; i<citys.length; i++) {
+                var cityCenter = mapv.utilCityCenter.getCenterByCityName(citys[i]);
+                data.push({
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [cityCenter.lng, cityCenter.lat]
+                    },
+                    text: '￥' + values[i] + '万'
+                });
+            }
+
+            var dataSet = new mapv.DataSet(data);
+
+            var options = {
+                zIndex: 2,
+                draw: 'text',
+                avoid: true,
+                size: 16,
+                font: '18px Arial',
+                fillStyle: 'red',
+                shadowColor: 'red',
+                shadowBlur: 10,
+            }
+
+            var mapvLayer = new mapv.baiduMapLayer(map, dataSet, options);
+
+            var point = new BMap.Point(129.622194,45.095991);
+            var opts = {
+                position : point,    // 指定文本标注所在的地理位置
+                offset   : new BMap.Size(0, -100)    //设置文本偏移量
+            }
+            var label = new BMap.Label("总销售额：<font color='yellow'>37亿元</font><br>销售总车辆数：<font color='yellow'>4500辆</font><br>总融资款：<font color='yellow'>30亿</font>\
+                <br>融资违约率：<font color='yellow'>0.8%</font><br><br><br>在线车辆：<font color='yellow'>1.23万辆</font><br>今年维修数：<font color='yellow'>4200辆</font>\
+                <br>月销售额：<font color='yellow'>13.25亿</font>", opts);  // 创建文本标注对象
+                label.setStyle({
+                    color : "lightgreen",
+                    fontSize : "12px",
+                    lineHeight : "20px",
+                    fontFamily:"微软雅黑",
+                    borderWidth: 0,
+                    backgroundColor: 'transparent'
+                });
+            map.addOverlay(label);  
+        });
+
+
+        // 地图自定义样式
+        map.setMapStyle({
+            styleJson: [{
+                "featureType": "water",
+                "elementType": "all",
+                "stylers": {
+                    "color": "#044161"
+                }
+            }, {
+                "featureType": "land",
+                "elementType": "all",
+                "stylers": {
+                    "color": "#091934"
+                }
+            }, {
+                "featureType": "boundary",
+                "elementType": "geometry",
+                "stylers": {
+                    "color": "#064f85"
+                }
+            }, {
+                "featureType": "railway",
+                "elementType": "all",
+                "stylers": {
+                    "visibility": "off"
+                }
+            }, {
+                "featureType": "highway",
+                "elementType": "geometry",
+                "stylers": {
+                    "color": "#004981"
+                }
+            }, {
+                "featureType": "highway",
+                "elementType": "geometry.fill",
+                "stylers": {
+                    "color": "#005b96",
+                    "lightness": 1
+                }
+            }, {
+                "featureType": "highway",
+                "elementType": "labels",
+                "stylers": {
+                    "visibility": "on"
+                }
+            }, {
+                "featureType": "arterial",
+                "elementType": "geometry",
+                "stylers": {
+                    "color": "#004981",
+                    "lightness": -39
+                }
+            }, {
+                "featureType": "arterial",
+                "elementType": "geometry.fill",
+                "stylers": {
+                    "color": "#00508b"
+                }
+            }, {
+                "featureType": "poi",
+                "elementType": "all",
+                "stylers": {
+                    "visibility": "off"
+                }
+            }, {
+                "featureType": "green",
+                "elementType": "all",
+                "stylers": {
+                    "color": "#056197",
+                    "visibility": "off"
+                }
+            }, {
+                "featureType": "subway",
+                "elementType": "all",
+                "stylers": {
+                    "visibility": "off"
+                }
+            }, {
+                "featureType": "manmade",
+                "elementType": "all",
+                "stylers": {
+                    "visibility": "off"
+                }
+            }, {
+                "featureType": "local",
+                "elementType": "all",
+                "stylers": {
+                    "visibility": "off"
+                }
+            }, {
+                "featureType": "arterial",
+                "elementType": "labels",
+                "stylers": {
+                    "visibility": "off"
+                }
+            }, {
+                "featureType": "boundary",
+                "elementType": "geometry.fill",
+                "stylers": {
+                    "color": "#029fd4"
+                }
+            }, {
+                "featureType": "building",
+                "elementType": "all",
+                "stylers": {
+                    "color": "#1a5787"
+                }
+            }, {
+                "featureType": "label",
+                "elementType": "all",
+                "stylers": {
+                    "visibility": "off"
+                }
+            }, {
+                "featureType": "poi",
+                "elementType": "labels.text.fill",
+                "stylers": {
+                    "color": "#ffffff"
+                }
+            }, {
+                "featureType": "poi",
+                "elementType": "labels.text.stroke",
+                "stylers": {
+                    "color": "#1e1c1c"
+                }
+            }, {
+                "featureType": "administrative",
+                "elementType": "labels",
+                "stylers": {
+                    "visibility": "on"
+                }
+            },{
+                "featureType": "road",
+                "elementType": "labels",
+                "stylers": {
+                    "visibility": "off"
+                }
+            },{
+                "featureType": "city",
+                "elementType": "labels",
+                "stylers": {
+                    "visibility": "off"
+                }
+            },{
+                "featureType": "district",
+                "elementType": "labels",
+                "stylers": {
+                    "visibility": "off"
+                }
+            }, {
+                "featureType": "town",
+                "elementType": "labels",
+                "stylers": {
+                    "visibility": "off"
+                }
+            }]
+        });
+
+    </script>
+	
+</body>
+</html>
+

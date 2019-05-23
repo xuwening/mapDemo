@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<style type="text/css">
+		body, html,#allmap {width: 100%;height: 100%;overflow: hidden;margin:0;font-family:"微软雅黑";}
+		#l-map{height:100%;width:78%;float:left;border-right:2px solid #bcbcbc;}
+		#r-result{height:100%;width:20%;float:left;}
+	</style>
+    <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=1XjLLEhZhQNUzd93EjU5nOGQ"></script>
+
+	<title>车辆轨迹</title>
+</head>
+<body>
+	<div id="allmap"></div>
+</body>
+</html>
+
+
+<script type="text/javascript">
+	// 百度地图API功能
+	var map = new BMap.Map("allmap");
+	var point = new BMap.Point(89.177995, 44.939548);
+    map.centerAndZoom(point, 11);
+    map.enableScrollWheelZoom(true);
+
+    // 编写自定义函数,创建标注
+	function addMarker(point){
+	  var myIcon = new BMap.Icon("https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=3620806441,1900155477&fm=26&gp=0.jpg"
+		  , new BMap.Size(256, 256));
+	  myIcon.setImageSize(new BMap.Size(60, 60));
+	  var marker = new BMap.Marker(point, {icon:myIcon});
+	  map.addOverlay(marker);
+	}
+
+    $.get('mapdata.js', function (rs) {
+
+		var geoCoords = JSON.parse(rs);
+		
+		var minGeoX = geoCoords[0].geoCoord[0];
+		var minGeoY = geoCoords[0].geoCoord[1];
+		var maxGeoX = geoCoords[0].geoCoord[0];
+		var maxGeoY = geoCoords[0].geoCoord[1];
+
+        for (var i = 0; i < geoCoords.length; i+=5) {
+            var point = new BMap.Point(geoCoords[i].geoCoord[0], geoCoords[i].geoCoord[1]);
+			addMarker(point);
+			
+			minGeoX = minGeoX > geoCoords[i].geoCoord[0] ? geoCoords[i].geoCoord[0] : minGeoX;
+			maxGeoX = maxGeoX < geoCoords[i].geoCoord[0] ? geoCoords[i].geoCoord[0] : maxGeoX;
+
+			minGeoY = minGeoY > geoCoords[i].geoCoord[1] ? geoCoords[i].geoCoord[1] : minGeoY;
+			maxGeoY = maxGeoY < geoCoords[i].geoCoord[1] ? geoCoords[i].geoCoord[1] : maxGeoY;
+		}
+		
+		var pt1 = new BMap.Point(minGeoX, minGeoY);
+		var pt2 = new BMap.Point(maxGeoX, maxGeoY);
+
+		map.setViewport([pt1, pt2]);    //调整视野
+    });
+
+</script>
+
+
