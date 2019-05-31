@@ -1,0 +1,143 @@
+<!-- 重点参数：iconStyle, iconLabel -->
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>车辆轨迹</title>
+    <style>
+    html,
+    body,
+    #container {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+    }
+
+    .amap-marker-label {
+        font-size: 13px;
+        border: 1px solid orange;
+        background: #fff;
+        border-radius: 10px 0 0 0;
+        color: #690441;
+    }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+    <script type="text/javascript" src='https://webapi.amap.com/maps?v=1.4.14&key=bed6b3d25e1bc2d6bf27a667425ade4c'></script>
+    <!-- UI组件库 1.0 -->
+	<script src="https://webapi.amap.com/ui/1.0/main.js?v=1.0.11"></script>
+	<script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript">
+    //创建地图
+    var map = new AMap.Map('container', {
+        resizeEnable: true, //是否监控地图容器尺寸变化
+        zoom:11, //初始化地图层级
+        center: [89.177995, 44.939548] //初始化地图中心点
+    });
+
+		$.getJSON('./mapdata.js', function (rs) {
+
+			var geoCoords = rs;
+			var pts = []
+			for (var i = 0; i < geoCoords.length; i++) {
+				var point = [geoCoords[i].geoCoord[0], geoCoords[i].geoCoord[1]];
+				pts.push(point)
+			}
+
+			AMapUI.load(['ui/misc/PathSimplifier', 'lib/$'], function(PathSimplifier, $) {
+
+
+			var emptyLineStyle = {
+				lineWidth: 0,
+				fillStyle: null,
+				strokeStyle: null,
+				borderStyle: null
+			};
+
+			var pathSimplifierIns = new PathSimplifier({
+				zIndex: 100,
+				//autoSetFitView:false,
+				map: map, //所属的地图实例
+
+				getPath: function(pathData, pathIndex) {
+
+					return pathData.path;
+				},
+				getHoverTitle: function(pathData, pathIndex, pointIndex) {
+
+					return null;
+				},
+				renderOptions: {
+					//将点、线相关的style全部置emptyLineStyle
+					pathLineStyle: emptyLineStyle,
+					pathLineSelectedStyle: emptyLineStyle,
+					pathLineHoverStyle: emptyLineStyle,
+					keyPointStyle: emptyLineStyle,
+					startPointStyle: emptyLineStyle,
+					endPointStyle: emptyLineStyle,
+					keyPointHoverStyle: emptyLineStyle,
+					keyPointOnSelectedPathLineStyle: emptyLineStyle
+				}
+			});
+
+			window.pathSimplifierIns = pathSimplifierIns;
+
+			//设置数据
+			pathSimplifierIns.setData([{
+				name: '路线0',
+				path: pts
+			}]);
+
+			// //选中路线0
+			// pathSimplifierIns.setSelectedPathIndex(0);
+
+			// // pathSimplifierIns.on('pointClick', function(e, info) {
+
+			// // 	console.log('Click: ' + info.pathData.points[info.pointIndex].name);
+			// // });
+			// });
+
+			function onload() {
+				pathSimplifierIns.renderLater();
+			}
+
+			function onerror(e) {
+				alert('图片加载失败！');
+			}
+
+			var navg1 = pathSimplifierIns.createPathNavigator(0, {
+				loop: true,
+				speed: 10000,
+				pathNavigatorStyle: {
+					width: 26,
+					height: 52,
+					//使用图片
+					content: PathSimplifier.Render.Canvas.getImageContent('./image/car.png', onload, onerror),
+					strokeStyle: null,
+					fillStyle: null,
+					//经过路径的样式
+					pathLinePassedStyle: {
+						lineWidth: 6,
+						strokeStyle: 'black',
+						dirArrowStyle: {
+							stepSpace: 15,
+							strokeStyle: 'red'
+						}
+					}
+				}
+			});
+
+			navg1.start();
+
+		});
+	});
+		
+    </script>
+</body>
+
+</html>

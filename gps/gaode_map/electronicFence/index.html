@@ -1,0 +1,106 @@
+<!-- 重点参数：iconStyle, iconLabel -->
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <!-- 原始地址：//webapi.amap.com/ui/1.0/ui/overlay/SimpleMarker/examples/index.html -->
+    <!-- <base href="https://webapi.amap.com/ui/1.0/ui/overlay/SimpleMarker/examples/" /> -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>电子围栏</title>
+    <style>
+    html,
+    body,
+    #container {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+    }
+
+    .amap-marker-label {
+        font-size: 13px;
+        border: 1px solid orange;
+        background: #fff;
+        border-radius: 10px 0 0 0;
+        color: #690441;
+    }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+    <script type="text/javascript" src='https://webapi.amap.com/maps?v=1.4.14&key=bed6b3d25e1bc2d6bf27a667425ade4c'></script>
+    <!-- UI组件库 1.0 -->
+	<script src="https://webapi.amap.com/ui/1.0/main.js?v=1.0.11"></script>
+	<script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript">
+    //创建地图
+    var map = new AMap.Map('container', {
+        resizeEnable: true, //是否监控地图容器尺寸变化
+        zoom:7, //初始化地图层级
+        center: [94.615177,41.812791] //初始化地图中心点
+    });
+
+
+	var circle = new AMap.Circle({
+		center: new AMap.LngLat(87.615177,43.812791),  // 圆心位置
+		radius: 130000, // 圆半径
+		fillColor: 'green',   // 圆形填充颜色
+		strokeColor: '#fff', // 描边颜色
+		strokeWeight: 2, // 描边宽度
+	});
+	circle.setMap(map)
+
+
+	var southWest = new AMap.LngLat(86.16179,41.808285)
+    var northEast = new AMap.LngLat(90.24599,39.66748)
+
+    var bounds = new AMap.Bounds(southWest, northEast)
+    var rectangle = new AMap.Rectangle({
+        bounds: bounds,
+        strokeColor:'red',
+        strokeWeight: 6,
+        strokeOpacity:0.5,
+        strokeDasharray: [30,10],
+        // strokeStyle还支持 solid
+        strokeStyle: 'dashed',
+        fillColor:'blue',
+        fillOpacity:0.5,
+        cursor:'pointer',
+        zIndex:50,
+    })
+
+	rectangle.setMap(map)
+
+	var clickHandler = function(e) {
+		// alert('您在[ '+e.lnglat.getLng()+','+e.lnglat.getLat()+' ]的位置点击了地图！');
+
+		//判断是否在电子围栏内
+		var pt = new AMap.LngLat(e.lnglat.getLng(), e.lnglat.getLat());
+		var tips = ''
+
+
+		if (circle.contains(pt)) {
+			tips = JSON.stringify(pt) + '在圆形范围内'
+		} else {
+			tips = JSON.stringify(pt) + '不在圆形范围内'
+		}
+		alert(tips)
+
+		if (rectangle.contains(pt)) {
+			tips = JSON.stringify(pt) + '在矩形范围内'
+		} else {
+			tips = JSON.stringify(pt) + '不在矩形范围内'
+		}
+		alert(tips)
+	};
+
+	// 绑定事件
+	map.on('click', clickHandler);
+	rectangle.on('click', clickHandler);
+	circle.on('click', clickHandler);
+
+    </script>
+</body>
+
+</html>

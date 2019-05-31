@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- 原始地址：//webapi.amap.com/ui/1.0/ui/geo/DistrictExplorer/examples/multi-load.html -->
+    <!-- <base href="https://webapi.amap.com/ui/1.0/ui/geo/DistrictExplorer/examples/" /> -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>多区域加载</title>
+    <style>
+    html,
+    body,
+    #container {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+    }
+    </style>
+</head>
+<body>
+
+    <div id="container"></div>
+    <script type="text/javascript" src='https://webapi.amap.com/maps?v=1.4.14&key=bed6b3d25e1bc2d6bf27a667425ade4c'></script>
+    <!-- UI组件库 1.0 -->
+    <script src="https://webapi.amap.com/ui/1.0/main.js?v=1.0.11"></script>
+    <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript" src='https://a.amap.com/jsapi_demos/static/citys.js'></script>
+
+    <script type="text/javascript">
+
+        //创建地图
+        var map = new AMap.Map('container', {
+            cursor: 'default',
+            zoom: 5
+        });
+
+        $.get('mapdata.js', function (rs) {
+
+            var mapdata = JSON.parse(rs);
+
+            var datas = [];
+            var slash = [];
+            for (var i=0; i<mapdata.length; i++) {
+
+                var geoCoord = mapdata[i].geoCoord;
+                datas.push({
+                    "lnglat": geoCoord,
+                    "name": "",
+                    style: 2
+                })
+
+                slash.push(geoCoord[0] + ',' + geoCoord[1])
+            }
+            
+            //行政区域填色
+            AMapUI.loadUI(['geo/DistrictExplorer'], function(DistrictExplorer) {
+
+                //创建一个实例
+                var districtExplorer = new DistrictExplorer({
+                    map: map
+                });
+
+                function renderAreaNode(areaNode) {
+
+                    //绘制子区域
+                    districtExplorer.renderSubFeatures(areaNode, function(feature, i) {
+
+                        return {
+                            cursor: 'default',
+                            bubble: true,
+                            strokeColor: "transparent", //线颜色
+                            strokeOpacity: 1, //线透明度
+                            strokeWeight: 1, //线宽
+                            fillColor: "#00ffff", //填充色
+                            fillOpacity: 0.35, //填充透明度
+                        };
+                    });
+
+                    //绘制父区域
+                    districtExplorer.renderParentFeature(areaNode, {
+                        cursor: 'default',
+                        bubble: true,
+                        strokeColor: 'black', //线颜色
+                        strokeOpacity: 1, //线透明度
+                        strokeWeight: 1, //线宽
+                        fillColor: null, //填充色
+                        fillOpacity: 0.35, //填充透明度
+                    });
+                }
+
+                var adcodes = [650000, 530000, 410000];
+
+                districtExplorer.loadMultiAreaNodes(adcodes, function(error, areaNodes) {
+
+                    //清除已有的绘制内容
+                    districtExplorer.clearFeaturePolygons();
+
+
+                    for (var i = 0, len = areaNodes.length; i < len; i++) {
+                        renderAreaNode(areaNodes[i]);
+                    }
+
+                    //更新地图视野
+                    // map.setFitView(districtExplorer.getAllFeaturePolygons());
+                });
+                });
+
+                //显示海量点
+                var style = [{
+                    url: 'https://a.amap.com/jsapi_demos/static/images/mass0.png',
+                    anchor: new AMap.Pixel(6, 6),
+                    size: new AMap.Size(11, 11)
+                }, {
+                    url: 'https://a.amap.com/jsapi_demos/static/images/mass1.png',
+                    anchor: new AMap.Pixel(4, 4),
+                    size: new AMap.Size(7, 7)
+                }, {
+                    url: 'https://a.amap.com/jsapi_demos/static/images/mass2.png',
+                    anchor: new AMap.Pixel(3, 3),
+                    size: new AMap.Size(3, 3)
+                }
+                ];
+
+                var mass = new AMap.MassMarks(datas, {
+                    opacity: 0.8,
+                    zIndex: 111,
+                    cursor: 'pointer',
+                    style: style
+                });
+
+                var marker = new AMap.Marker({content: ' ', map: map});
+
+                // mass.on('mouseover', function (e) {
+
+                //     marker.setPosition(e.data.lnglat);
+                //     marker.setLabel({content: e.data.name})
+                // });
+
+                mass.setMap(map);
+            
+
+                //显示闪光点
+                var colors = [
+                    '#0cc2f2',
+                    '#4fd2b1',
+                    '#90e36f',
+                    '#ffe700',
+                    '#ff9e00',
+                    '#ff6700',
+                    '#ff1800'
+                ];
+
+                AMapUI.load(['ui/misc/PointSimplifier', 'lib/$'], function(PointSimplifier, $) {
+
+                    var pointSimplifierIns = new PointSimplifier({
+                        zIndex: 115,
+                        autoSetFitView: false,
+                        map: map, //所属的地图实例
+
+                        getPosition: function(item) {
+                            if (!item) {
+                                return null;
+                            }
+
+                            var parts = item.split(',');
+
+                            return [parseFloat(parts[0]), parseFloat(parts[1])];
+                        },
+                        getHoverTitle: function(dataItem, idx) {
+                            return '序号: ' + idx;
+                        },
+                        //使用GroupStyleRender
+                        renderConstructor: PointSimplifier.Render.Canvas.GroupStyleRender,
+                        renderOptions: {
+                            eventSupport: false, //禁止事件,对性能更友好
+                            //点的样式
+                            pointStyle: {
+                                fillStyle: null,
+                                width: 5,
+                                height: 5
+                            },
+                            topNAreaStyle: null,
+                            getGroupId: function(item, idx) {
+
+                                //随机返回一个组ID
+                                return Math.ceil(colors.length * Math.random());
+                            },
+                            groupStyleOptions: function(gid) {
+
+                                //随机设置大小
+                                var radius = 2 + 10 * Math.random() / 2;
+
+                                return {
+
+                                    pointStyle: radius > 0 ? {
+                                        content: function(ctx, x, y, width, height) {
+
+                                            var p = {
+                                                x: x + width / 2,
+                                                y: y + height / 2,
+                                                radius: radius
+                                            };
+
+                                            ctx.beginPath();
+                                            var gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+                                            gradient.addColorStop(0, "rgba(7,120,249,0.8)");
+                                            gradient.addColorStop(1, "rgba(7,120,249,0.1)");
+                                            ctx.fillStyle = gradient;
+                                            ctx.arc(p.x, p.y, p.radius, Math.PI * 2, false);
+                                            ctx.fill();
+
+                                        },
+
+                                        //fillStyle: colors[gid % colors.length],
+                                        width: radius * 2,
+                                        height: radius * 2
+                                    } : null,
+                                    pointHardcoreStyle: {
+                                        width: radius * 2 + 3,
+                                        height: radius * 2 + 3
+                                    }
+                                };
+                            }
+
+                        }
+                    });
+
+
+                    //重复render
+                    setInterval(function() {
+                        pointSimplifierIns.render();
+                    }, 500)
+
+                    pointSimplifierIns.setData(slash.slice(0, 5000));
+                });
+        });
+
+    </script>
+	
+</body>
+</html>
+

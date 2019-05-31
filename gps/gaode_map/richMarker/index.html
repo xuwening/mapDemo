@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- 原始地址：//webapi.amap.com/ui/1.0/ui/geo/DistrictExplorer/examples/multi-load.html -->
+    <!-- <base href="https://webapi.amap.com/ui/1.0/ui/geo/DistrictExplorer/examples/" /> -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>多区域加载</title>
+    <style>
+    html,
+    body,
+    #container {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+    }
+    </style>
+</head>
+<body>
+
+    <div id="container"></div>
+    <script type="text/javascript" src='https://webapi.amap.com/maps?v=1.4.14&key=bed6b3d25e1bc2d6bf27a667425ade4c'></script>
+    <!-- UI组件库 1.0 -->
+    <script src="https://webapi.amap.com/ui/1.0/main.js?v=1.0.11"></script>
+    <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript" src='https://a.amap.com/jsapi_demos/static/citys.js'></script>
+
+    <script type="text/javascript">
+
+        //创建地图
+        var map = new AMap.Map('container', {
+            cursor: 'default',
+            zoom: 5
+        });
+
+        $.get('mapdata.js', function (rs) {
+
+            var mapdata = JSON.parse(rs);
+
+            var datas = [];
+            var slash = [];
+            for (var i=0; i<mapdata.length; i++) {
+
+                var geoCoord = mapdata[i].geoCoord;
+                datas.push({
+                    "lnglat": geoCoord,
+                    "name": "",
+                    style: 2
+                })
+
+                slash.push(geoCoord[0] + ',' + geoCoord[1])
+            }
+            
+            //行政区域填色
+            AMapUI.loadUI(['geo/DistrictExplorer'], function(DistrictExplorer) {
+
+                //创建一个实例
+                var districtExplorer = new DistrictExplorer({
+                    map: map
+                });
+
+                function renderAreaNode(areaNode) {
+
+                    //绘制子区域
+                    districtExplorer.renderSubFeatures(areaNode, function(feature, i) {
+
+                        return {
+                            cursor: 'default',
+                            bubble: true,
+                            strokeColor: "transparent", //线颜色
+                            strokeOpacity: 1, //线透明度
+                            strokeWeight: 1, //线宽
+                            fillColor: "#00ffff", //填充色
+                            fillOpacity: 0.35, //填充透明度
+                        };
+                    });
+
+                    //绘制父区域
+                    districtExplorer.renderParentFeature(areaNode, {
+                        cursor: 'default',
+                        bubble: true,
+                        strokeColor: 'black', //线颜色
+                        strokeOpacity: 1, //线透明度
+                        strokeWeight: 1, //线宽
+                        fillColor: null, //填充色
+                        fillOpacity: 0.35, //填充透明度
+                    });
+                }
+
+                var adcodes = [650000, 530000, 410000];
+
+                districtExplorer.loadMultiAreaNodes(adcodes, function(error, areaNodes) {
+
+                    //清除已有的绘制内容
+                    districtExplorer.clearFeaturePolygons();
+
+
+                    for (var i = 0, len = areaNodes.length; i < len; i++) {
+                        renderAreaNode(areaNodes[i]);
+                    }
+
+                    //更新地图视野
+                    // map.setFitView(districtExplorer.getAllFeaturePolygons());
+                });
+                });
+
+                //显示海量点
+                var style = [{
+                    url: 'https://a.amap.com/jsapi_demos/static/images/mass0.png',
+                    anchor: new AMap.Pixel(6, 6),
+                    size: new AMap.Size(11, 11)
+                }, {
+                    url: 'https://a.amap.com/jsapi_demos/static/images/mass1.png',
+                    anchor: new AMap.Pixel(4, 4),
+                    size: new AMap.Size(7, 7)
+                }, {
+                    url: 'https://a.amap.com/jsapi_demos/static/images/mass2.png',
+                    anchor: new AMap.Pixel(3, 3),
+                    size: new AMap.Size(3, 3)
+                }
+                ];
+
+                var mass = new AMap.MassMarks(datas, {
+                    opacity: 0.8,
+                    zIndex: 111,
+                    cursor: 'pointer',
+                    style: style
+                });
+
+                var marker = new AMap.Marker({content: ' ', map: map});
+
+                // mass.on('mouseover', function (e) {
+
+                //     marker.setPosition(e.data.lnglat);
+                //     marker.setLabel({content: e.data.name})
+                // });
+
+				mass.setMap(map);
+				
+				//显示总量
+				AMapUI.load(['ui/geo/DistrictCluster', 'lib/$'], function(DistrictCluster, $) {
+
+					var distCluster = new DistrictCluster({
+						map: map, //所属的地图实例
+						zIndex:11,
+						//设置显示3个省
+						topAdcodes: [650000, 530000, 410000],
+						autoSetFitView: false,
+						getPosition: function(item) {
+
+							if (!item) {
+								return null;
+							}
+
+							var parts = item.split(',');
+
+							//返回经纬度
+							return [parseFloat(parts[0]), parseFloat(parts[1])];
+						}
+					});
+
+					distCluster.setData(slash);
+				});
+        });
+
+    </script>
+	
+</body>
+</html>
+
